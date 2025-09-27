@@ -1,0 +1,18 @@
+# Sensitive files
+.env
+application-dev.yml
+application-local.yml
+
+# Build files
+target/
+*.jar
+*.class
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

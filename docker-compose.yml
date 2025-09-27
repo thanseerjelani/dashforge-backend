@@ -1,0 +1,63 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: dashforge-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: personal_dashboard_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - dashforge-network
+
+  backend:
+    build: .
+    container_name: dashforge-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/personal_dashboard_dev
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dashforge-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: dashforge-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: thanseerjelani@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: mySecurePass@20
+    ports:
+      - "8081:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - dashforge-network
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  dashforge-network:
+    driver: bridge
