@@ -25,7 +25,11 @@ import java.util.List;
 @RequestMapping("/api/events")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3011"})
+@CrossOrigin(origins = {
+        "http://localhost:5173",
+        "http://localhost:3011",
+        "https://dashforge.netlify.app"
+})
 public class CalendarEventController {
 
     private final CalendarEventService eventService;
