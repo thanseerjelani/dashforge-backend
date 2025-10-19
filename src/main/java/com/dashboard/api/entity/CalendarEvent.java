@@ -13,13 +13,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "calendar_events")
+@Table(name = "calendar_events", indexes = {
+        @Index(name = "idx_event_user_id", columnList = "user_id"),
+        @Index(name = "idx_event_start_time", columnList = "start_time"),
+        @Index(name = "idx_event_end_time", columnList = "end_time"),
+        @Index(name = "idx_event_category", columnList = "category"),
+        @Index(name = "idx_event_priority", columnList = "priority")
+})
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class CalendarEvent extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @NotNull(message = "User cannot be null")
+    private User user;
 
     @NotBlank(message = "Title cannot be blank")
     @Size(max = 255, message = "Title must not exceed 255 characters")

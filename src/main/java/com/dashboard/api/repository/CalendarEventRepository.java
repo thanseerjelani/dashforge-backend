@@ -1,8 +1,8 @@
 // src/main/java/com/dashboard/api/repository/CalendarEventRepository.java
-// Alternative approach - using simpler queries and combining them in the service
 package com.dashboard.api.repository;
 
 import com.dashboard.api.entity.CalendarEvent;
+import com.dashboard.api.entity.User;
 import com.dashboard.api.enums.EventCategory;
 import com.dashboard.api.enums.EventPriority;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,80 +13,91 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CalendarEventRepository extends JpaRepository<CalendarEvent, String> {
 
-    // Simple queries that work reliably
-    List<CalendarEvent> findByCategory(EventCategory category);
+    // Find all events for a specific user
+    List<CalendarEvent> findByUserOrderByStartTimeAsc(User user);
 
-    List<CalendarEvent> findByPriority(EventPriority priority);
+    // Find event by id and user (for security)
+    Optional<CalendarEvent> findByIdAndUser(String id, User user);
 
-    List<CalendarEvent> findByCategoryAndPriority(EventCategory category, EventPriority priority);
+    // Simple queries that work reliably with user context
+    List<CalendarEvent> findByUserAndCategory(User user, EventCategory category);
 
-    // Search queries using native SQL
-    @Query(value = "SELECT * FROM calendar_events WHERE " +
-            "LOWER(title) LIKE LOWER(CONCAT('%', ?1, '%')) OR " +
-            "LOWER(description) LIKE LOWER(CONCAT('%', ?1, '%')) OR " +
-            "LOWER(location) LIKE LOWER(CONCAT('%', ?1, '%')) " +
+    List<CalendarEvent> findByUserAndPriority(User user, EventPriority priority);
+
+    List<CalendarEvent> findByUserAndCategoryAndPriority(User user, EventCategory category, EventPriority priority);
+
+    // Search queries using native SQL with user context
+    @Query(value = "SELECT * FROM calendar_events WHERE user_id = :userId AND (" +
+            "LOWER(title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(location) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
             "ORDER BY start_time ASC",
             nativeQuery = true)
-    List<CalendarEvent> findBySearchTerm(String searchTerm);
+    List<CalendarEvent> findByUserAndSearchTerm(@Param("userId") String userId, @Param("searchTerm") String searchTerm);
 
-    // Date range queries
-    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime >= :startDate AND e.startTime <= :endDate ORDER BY e.startTime ASC")
-    List<CalendarEvent> findByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    // Date range queries with user context
+    @Query("SELECT e FROM CalendarEvent e WHERE e.user = :user AND e.startTime >= :startDate AND e.startTime <= :endDate ORDER BY e.startTime ASC")
+    List<CalendarEvent> findByUserAndDateRange(@Param("user") User user, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
-    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime >= :startDate ORDER BY e.startTime ASC")
-    List<CalendarEvent> findByStartDateAfter(@Param("startDate") LocalDateTime startDate);
+    @Query("SELECT e FROM CalendarEvent e WHERE e.user = :user AND e.startTime >= :startDate ORDER BY e.startTime ASC")
+    List<CalendarEvent> findByUserAndStartDateAfter(@Param("user") User user, @Param("startDate") LocalDateTime startDate);
 
-    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime <= :endDate ORDER BY e.startTime ASC")
-    List<CalendarEvent> findByEndDateBefore(@Param("endDate") LocalDateTime endDate);
+    @Query("SELECT e FROM CalendarEvent e WHERE e.user = :user AND e.startTime <= :endDate ORDER BY e.startTime ASC")
+    List<CalendarEvent> findByUserAndEndDateBefore(@Param("user") User user, @Param("endDate") LocalDateTime endDate);
 
-    // Today's events using native query
-    @Query(value = "SELECT * FROM calendar_events e WHERE DATE(e.start_time) = ?1 ORDER BY e.start_time ASC",
+    // Today's events using native query with user context
+    @Query(value = "SELECT * FROM calendar_events e WHERE e.user_id = :userId AND DATE(e.start_time) = :today ORDER BY e.start_time ASC",
             nativeQuery = true)
-    List<CalendarEvent> findTodaysEvents(LocalDate today);
+    List<CalendarEvent> findTodaysEventsByUser(@Param("userId") String userId, @Param("today") LocalDate today);
 
-    // Find upcoming events
-    @Query("SELECT e FROM CalendarEvent e WHERE e.startTime > :now AND e.startTime <= :futureDate ORDER BY e.startTime ASC")
-    List<CalendarEvent> findUpcomingEvents(@Param("now") LocalDateTime now, @Param("futureDate") LocalDateTime futureDate);
+    // Find upcoming events with user context
+    @Query("SELECT e FROM CalendarEvent e WHERE e.user = :user AND e.startTime > :now AND e.startTime <= :futureDate ORDER BY e.startTime ASC")
+    List<CalendarEvent> findUpcomingEventsByUser(@Param("user") User user, @Param("now") LocalDateTime now, @Param("futureDate") LocalDateTime futureDate);
 
-    // Find overdue events
-    @Query("SELECT e FROM CalendarEvent e WHERE e.endTime < :now")
-    List<CalendarEvent> findOverdueEvents(@Param("now") LocalDateTime now);
+    // Find overdue events with user context
+    @Query("SELECT e FROM CalendarEvent e WHERE e.user = :user AND e.endTime < :now")
+    List<CalendarEvent> findOverdueEventsByUser(@Param("user") User user, @Param("now") LocalDateTime now);
 
-    // Count by category
-    long countByCategory(EventCategory category);
+    // Count by category with user context
+    long countByUserAndCategory(User user, EventCategory category);
 
-    // Count by priority
-    long countByPriority(EventPriority priority);
+    // Count by priority with user context
+    long countByUserAndPriority(User user, EventPriority priority);
 
-    // Count today's events using native query
-    @Query(value = "SELECT COUNT(*) FROM calendar_events e WHERE DATE(e.start_time) = ?1",
+    // Count all events for user
+    long countByUser(User user);
+
+    // Count today's events using native query with user context
+    @Query(value = "SELECT COUNT(*) FROM calendar_events e WHERE e.user_id = :userId AND DATE(e.start_time) = :today",
             nativeQuery = true)
-    long countTodaysEvents(LocalDate today);
+    long countTodaysEventsByUser(@Param("userId") String userId, @Param("today") LocalDate today);
 
-    // Count overdue events
-    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.endTime < :now")
-    long countOverdueEvents(@Param("now") LocalDateTime now);
+    // Count overdue events with user context
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.user = :user AND e.endTime < :now")
+    long countOverdueEventsByUser(@Param("user") User user, @Param("now") LocalDateTime now);
 
-    // Count upcoming events
-    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.startTime > :now AND e.startTime <= :futureDate")
-    long countUpcomingEvents(@Param("now") LocalDateTime now, @Param("futureDate") LocalDateTime futureDate);
+    // Count upcoming events with user context
+    @Query("SELECT COUNT(e) FROM CalendarEvent e WHERE e.user = :user AND e.startTime > :now AND e.startTime <= :futureDate")
+    long countUpcomingEventsByUser(@Param("user") User user, @Param("now") LocalDateTime now, @Param("futureDate") LocalDateTime futureDate);
 
-    // Find events by specific date using native query
-    @Query(value = "SELECT * FROM calendar_events e WHERE DATE(e.start_time) = ?1 ORDER BY e.start_time ASC",
+    // Find events by specific date with user context using native query
+    @Query(value = "SELECT * FROM calendar_events e WHERE e.user_id = :userId AND DATE(e.start_time) = :date ORDER BY e.start_time ASC",
             nativeQuery = true)
-    List<CalendarEvent> findByDate(LocalDate date);
+    List<CalendarEvent> findByUserAndDate(@Param("userId") String userId, @Param("date") LocalDate date);
 
-    // Check for conflicting events
-    @Query("SELECT e FROM CalendarEvent e WHERE " +
+    // Check for conflicting events with user context
+    @Query("SELECT e FROM CalendarEvent e WHERE e.user = :user AND " +
             "(:eventId IS NULL OR e.id != :eventId) AND " +
             "((e.startTime <= :startTime AND e.endTime > :startTime) OR " +
             "(e.startTime < :endTime AND e.endTime >= :endTime) OR " +
             "(e.startTime >= :startTime AND e.endTime <= :endTime))")
-    List<CalendarEvent> findConflictingEvents(
+    List<CalendarEvent> findConflictingEventsByUser(
+            @Param("user") User user,
             @Param("eventId") String eventId,
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime

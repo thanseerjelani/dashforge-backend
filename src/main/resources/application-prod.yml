@@ -2,6 +2,7 @@ spring:
   config:
     activate:
       on-profile: prod
+
   datasource:
     url: ${DATABASE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -12,6 +13,7 @@ spring:
       minimum-idle: 2
       idle-timeout: 300000
       connection-timeout: 20000
+
   jpa:
     show-sql: false
     hibernate:
@@ -19,8 +21,37 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # ===== EMAIL CONFIGURATION (NEW) =====
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}                  # Set as environment variable
+    password: ${MAIL_PASSWORD}                  # Set as environment variable
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+    default-encoding: UTF-8
+  # =====================================
+
 server:
   port: ${PORT:8080}
+
+# JWT Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}
+    refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+  name: ${APP_NAME:DashForge}
+
 logging:
   level:
     com.dashboard.api: INFO

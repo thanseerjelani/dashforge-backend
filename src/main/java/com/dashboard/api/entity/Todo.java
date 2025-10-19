@@ -13,13 +13,24 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Entity
-@Table(name = "todos")
+@Table(name = "todos", indexes = {
+        @Index(name = "idx_todo_user_id", columnList = "user_id"),
+        @Index(name = "idx_todo_completed", columnList = "completed"),
+        @Index(name = "idx_todo_due_date", columnList = "due_date"),
+        @Index(name = "idx_todo_category", columnList = "category"),
+        @Index(name = "idx_todo_priority", columnList = "priority")
+})
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Todo extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @NotNull(message = "User cannot be null")
+    private User user;
 
     @NotBlank(message = "Title cannot be blank")
     @Size(max = 255, message = "Title must not exceed 255 characters")
