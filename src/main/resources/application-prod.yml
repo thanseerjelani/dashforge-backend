@@ -41,6 +41,11 @@ spring:
     default-encoding: UTF-8
   # =====================================
 
+management:
+  health:
+    mail:
+      enabled: false  # Disable mail health check to prevent DOWN status
+
 server:
   port: ${PORT:8080}
 
