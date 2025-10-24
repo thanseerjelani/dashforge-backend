@@ -16,14 +16,28 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // CORS for API endpoints
         registry.addMapping("/api/**")
                 .allowedOrigins(
-                        "http://localhost:5173", // Vite dev server
-                        "http://localhost:3000", // Create React App dev server (backup)
-                        "http://localhost:4173", // Vite preview server
-                        "https://dashforge.netlify.app" // Add your production frontend URL
+                        "http://localhost:5173",
+                        "http://localhost:3000",
+                        "http://localhost:4173",
+                        "https://dashforge.netlify.app"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+
+        // CORS for actuator endpoints
+        registry.addMapping("/actuator/**")
+                .allowedOrigins(
+                        "http://localhost:5173",
+                        "http://localhost:3000",
+                        "http://localhost:4173",
+                        "https://dashforge.netlify.app"
+                )
+                .allowedMethods("GET", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
@@ -34,7 +48,7 @@ public class WebConfig implements WebMvcConfigurer {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:*",
-                "https://dashforge.netlify.app" // Add your production URL here too
+                "https://dashforge.netlify.app"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
@@ -43,6 +57,7 @@ public class WebConfig implements WebMvcConfigurer {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
+        source.registerCorsConfiguration("/actuator/**", configuration); // for actuator
         return source;
     }
 }
